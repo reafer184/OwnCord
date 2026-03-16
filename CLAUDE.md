@@ -10,6 +10,7 @@ being migrated from WPF/.NET 8 to Tauri v2
 (Rust + TypeScript).
 
 ## Codex CLI - Code REVIEW
+
 After builds, run Codex for a second opinion:
 
 codex exec --sandbox read-only \
@@ -25,7 +26,7 @@ codex exec --sandbox read-only \
 - **SCHEMA.md** -- SQLite table definitions, indexes, FTS5
   setup, permission bitfield definitions.
 - **API.md** -- REST endpoints, request/response shapes,
-  error codes. All paths start with `/api/` (NOT `/api/v1/`).
+  error codes. All paths start with `/api/v1/`.
 - **SETUP.md** -- Tooling requirements for both server and
   client development.
 - **CLIENT-ARCHITECTURE.md** -- Tauri v2 client project
@@ -205,16 +206,20 @@ go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
   switching
 - See TESTING-STRATEGY.md for full details.
 
-# Zettelkasten Knowledge Base (Obsidian)
+## Zettelkasten Knowledge Base (Obsidian)
 
 ## Vault Location
+
 `D:\Local-Lab\Coding\Repos\OwnCord\Obsidian-Brain\BIGBRAIN`
 
 ## When to Write Notes
-After completing any meaningful task — a bug fix, architectural decision, new pattern learned, tool configured, or problem solved — create or update a Zettelkasten note capturing the insight.
+
+After completing any meaningful task, create or update
+a Zettelkasten note capturing the insight.
 
 ## Folder Structure
-```
+
+```text
 BIGBRAIN/
 ├── 0-inbox/          # Fleeting notes, quick captures
 ├── 1-zettel/         # Permanent atomic notes (the core)
@@ -224,6 +229,7 @@ BIGBRAIN/
 ```
 
 ## Note Format
+
 Every note in `1-zettel/` uses this template:
 
 ```markdown
@@ -247,11 +253,17 @@ Why this matters or when it applies.
 ```
 
 ## Rules
-1. **Atomic**: One idea per note. If you're covering two concepts, split into two notes.
-2. **Linked**: Always add `[[wikilinks]]` to related existing notes. Search the vault first.
-3. **Own words**: Write insights in plain language, not raw copy-paste from docs.
-4. **ID as filename**: Name files as `{{YYYYMMDDHHMMSS}}-short-slug.md` (e.g., `20260316143022-pyodbc-to-mssql-migration.md`).
-5. **Inbox first**: If unsure about permanence, drop it in `0-inbox/` for later review.
-6. **Project MOCs**: Each active project gets a Map of Content in `2-projects/` that links to all relevant zettels.
-7. **Search before creating**: Before creating a new note, search existing notes to avoid duplicates and find linking opportunities.
 
+1. **Atomic**: One idea per note. Split if covering
+   two concepts.
+2. **Linked**: Add `[[wikilinks]]` to related notes.
+   Search the vault first.
+3. **Own words**: Write in plain language, not
+   copy-paste from docs.
+4. **ID as filename**: Use
+   `{{YYYYMMDDHHMMSS}}-short-slug.md`.
+5. **Inbox first**: If unsure, drop in `0-inbox/`.
+6. **Project MOCs**: Each project gets a MOC in
+   `2-projects/` linking relevant zettels.
+7. **Search before creating**: Search existing notes
+   to avoid duplicates.
