@@ -173,6 +173,30 @@ go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 - `main` -- stable releases
 - `dev` -- active development
 
+## Key Features
+
+- **Video chat**: WebRTC SFU with composite track keys
+  (`user-{id}-audio`, `user-{id}-video`). Camera
+  enable/disable triggers SDP renegotiation. VideoGrid
+  component replaces chat area when cameras are active.
+  Server enforces `MaxVideo` limit per room.
+- **GIF picker**: Tenor API v2 integration via
+  `lib/tenor.ts`. Uses Google's public anonymous API key.
+  Picker in MessageInput sends GIF URL as message content;
+  inline image rendering in `renderers.ts`.
+- **Push-to-talk**: Rust-side `GetAsyncKeyState` polling
+  (`src-tauri/src/ptt.rs`) — non-consuming, works globally.
+  Key capture UI in KeybindsTab with 10s timeout.
+  Client-side wiring in `lib/ptt.ts`.
+- **Desktop notifications**: `lib/notifications.ts` — Tauri
+  plugin-notification with Web Notification API fallback.
+  Taskbar flash, notification sound, @everyone suppression.
+- **Compact mode**: CSS class `.compact-mode` on body
+  reduces spacing, avatar sizes, and font sizes throughout.
+- **Admin IP restriction**: `/admin` routes restricted to
+  `admin_allowed_cidrs` in server config (default: private
+  networks only). Middleware in `api/middleware.go`.
+
 ## Critical Rules (always apply)
 
 - **API paths**: Always `/api/v1/*` (matches server router)
@@ -184,6 +208,12 @@ go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
   limits (typing 1/3s, presence 1/10s, voice 20/s)
 - **Status values**: Only `online`, `idle`, `dnd`,
   `offline`. Never `invisible`.
+- **Video track IDs**: Use `video-{userId}` for track ID
+  and `user-{userId}-video` for stream ID. Audio uses
+  `audio-{userId}` / `user-{userId}-audio`. Never reuse
+  the old `user-{userId}` stream ID format.
+- **Tenor API key**: The key in `lib/tenor.ts` is Google's
+  public anonymous key — not a secret. Do not move to env.
 
 ## Conventions & Details (see canonical files in docs/brain/)
 
