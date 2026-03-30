@@ -112,6 +112,59 @@ All specs live in `docs/brain/06-Specs/`:
   36 WebSocket message types with field definitions. Located
   at `docs/protocol-schema.json`.
 
+## Repo Copilot Assets
+
+Project-shared Copilot customizations live in `.github/instructions/`
+and `.claude/skills/`. Use them as the first stop before inventing new
+workflow guidance.
+
+### Auto-Applied Instructions
+
+- `admin-panel.instructions.md` -- Admin handlers, SSE log streaming,
+  backups, updates, and admin-only workflows.
+- `database-and-schema.instructions.md` -- SQLite schema, migrations,
+  tracked `schema_versions`, and DB-layer sentinel-error rules.
+- `design-system.instructions.md` -- Client design-system, theming,
+  accessibility, and token usage rules.
+- `dm-authorization.instructions.md` -- DM-specific authorization branch
+  rule for channel-aware handlers and dispatcher flows.
+- `go-server.instructions.md` -- Go server structure, safety rules,
+  permissions, and testing expectations.
+- `protocol-and-api.instructions.md` -- REST/WS synchronization,
+  reconnection, rate limits, and protocol coupling.
+- `tauri-frontend.instructions.md` -- TypeScript client/store patterns
+  and existing networking abstractions.
+- `tauri-rust.instructions.md` -- Tauri/Rust backend layout, IPC,
+  TOFU, proxying, updater, and Windows boundary rules.
+- `testing.instructions.md` -- TDD, coverage, regression tests, and
+  validation command expectations.
+- `vault-workflow.instructions.md` -- Project-brain workflow, session
+  logs, task/bug/decision tracking, and required doc updates.
+
+### On-Demand Repo Skills
+
+- `owncord-patterns` -- Broad repo architecture and workflow patterns.
+- `protocol-guard` -- Protocol/API changes, new message types, and
+  contract drift prevention.
+- `code-review` -- Repo-specific code review workflow for server-side
+  and safety-sensitive changes.
+- `security-audit` -- Auth, tokens, permissions, uploads, and general
+  security review.
+- `test-writer` -- Repo-specific Go test generation and regression
+  coverage guidance.
+- `owncord-reconnection` -- `last_seq`, replay buffer, state recovery,
+  and reconnect bug work.
+- `livekit-integration` -- LiveKit token flow, media lifecycle,
+  device-switching, cleanup, and voice recovery work.
+- `e2e-tier-selector` -- Choose unit vs integration vs mocked/prod/native
+  E2E for client and Tauri changes.
+- `config-and-secrets` -- Config loading, env overrides, TLS/LiveKit
+  setup, and secret-safe configuration changes.
+- `observability-debugging` -- Metrics, diagnostics, admin log stream,
+  and persisted client log workflows.
+- `windows-integration` -- Windows Credential Manager, TOFU/WebView2,
+  PTT, tray, hotkeys, updater, and other desktop-bound paths.
+
 ## Project Structure
 
 ```text
