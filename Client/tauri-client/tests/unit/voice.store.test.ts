@@ -43,6 +43,8 @@ const VOICE_STATE_1: ReadyVoiceState = {
   user_id: 1,
   muted: false,
   deafened: false,
+  camera: false,
+  screenshare: false,
 };
 
 const VOICE_STATE_2: ReadyVoiceState = {
@@ -50,6 +52,8 @@ const VOICE_STATE_2: ReadyVoiceState = {
   user_id: 2,
   muted: true,
   deafened: false,
+  camera: false,
+  screenshare: false,
 };
 
 const VOICE_STATE_3: ReadyVoiceState = {
@@ -57,6 +61,8 @@ const VOICE_STATE_3: ReadyVoiceState = {
   user_id: 3,
   muted: false,
   deafened: true,
+  camera: false,
+  screenshare: false,
 };
 
 const FULL_VOICE_PAYLOAD: VoiceStatePayload = {
