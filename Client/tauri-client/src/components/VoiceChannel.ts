@@ -151,7 +151,26 @@ export function createVoiceChannel(options: VoiceChannelOptions): VoiceChannelRe
   }
 
   function createUserRow(user: VoiceUser, username: string): HTMLDivElement {
-    const classes = user.speaking
+    const currentUserId = authStore.getState().user?.id ?? 0;
+    const isSelf = currentUserId !== 0 && user.userId === currentUserId;
+
+    // For own user: use authoritative local flags (updated optimistically on button press)
+    // so the mute icon appears instantly without waiting for server round-trip.
+    const effectiveState = isSelf
+      ? {
+          muted: voiceStore.getState().localMuted,
+          deafened: voiceStore.getState().localDeafened,
+          camera: voiceStore.getState().localCamera,
+          speaking: user.speaking,
+        }
+      : {
+          muted: user.muted,
+          deafened: user.deafened,
+          camera: user.camera,
+          speaking: user.speaking,
+        };
+
+    const classes = effectiveState.speaking
       ? "voice-user-item speaking"
       : "voice-user-item";
     const row = createElement("div", { class: classes });
@@ -165,21 +184,20 @@ export function createVoiceChannel(options: VoiceChannelOptions): VoiceChannelRe
     const name = createElement("span", { class: "vu-name" }, username);
     row.appendChild(name);
 
-    if (user.camera) {
+    if (effectiveState.camera) {
       const cameraEl = createElement("span", { class: "vu-status" });
       cameraEl.appendChild(createIcon("camera", 14));
       row.appendChild(cameraEl);
     }
 
-    if (user.muted || user.deafened) {
+    if (effectiveState.muted || effectiveState.deafened) {
       const mutedEl = createElement("span", { class: "vu-muted" });
-      mutedEl.appendChild(createIcon(user.deafened ? "headphones-off" : "mic-off", 14));
+      mutedEl.appendChild(createIcon(effectiveState.deafened ? "headphones-off" : "mic-off", 14));
       row.appendChild(mutedEl);
     }
 
     // Right-click for per-user volume (skip for own user)
-    const currentUser = authStore.getState().user;
-    if (currentUser === null || currentUser.id !== user.userId) {
+    if (!isSelf) {
       row.addEventListener("contextmenu", (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -228,6 +246,12 @@ export function createVoiceChannel(options: VoiceChannelOptions): VoiceChannelRe
   // Initial render and subscribe
   update();
   unsubs.push(voiceStore.subscribeSelector((s) => s.voiceUsers, () => update()));
+  // Re-render when local mute/deafen/camera state changes so own user row updates instantly.
+  unsubs.push(voiceStore.subscribeSelector(
+    (s) => ({ m: s.localMuted, d: s.localDeafened, c: s.localCamera }),
+    () => update(),
+    (a, b) => a.m === b.m && a.d === b.d && a.c === b.c,
+  ));
   unsubs.push(membersStore.subscribeSelector((s) => s.members, () => update()));
 
   function destroy(): void {
