@@ -38,7 +38,7 @@ const sampleReady = {
       { id: 2, username: "jordan", avatar: null, role: "member", status: "idle" as const },
     ],
     voice_states: [
-      { channel_id: 10, user_id: 2, muted: false, deafened: false },
+      { channel_id: 10, user_id: 2, muted: false, deafened: false, camera: false, screenshare: false },
     ],
     roles: [
       { id: 1, name: "Owner", color: "#E74C3C", permissions: 2147483647 },
@@ -150,8 +150,6 @@ describe("AUDIT Critical: threshold_mode (CRIT-2, CRIT-3)", () => {
 
 describe("AUDIT Critical: no channel_focus message type", () => {
   it("ServerMessage union does not include channel_focus", () => {
-    // This test documents that channel_focus is intentionally excluded.
-    // If someone accidentally adds it, this comment serves as a warning.
     const validTypes = [
       "auth_ok", "auth_error", "ready", "chat_message", "chat_send_ok",
       "chat_edited", "chat_deleted", "reaction_update", "typing", "presence",

@@ -171,6 +171,8 @@ export function makeReadyVoiceState(
     user_id: 1,
     muted: false,
     deafened: false,
+    camera: false,
+    screenshare: false,
     ...overrides,
   };
 }
