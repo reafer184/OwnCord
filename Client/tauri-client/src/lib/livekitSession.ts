@@ -89,6 +89,8 @@ export function parseUserId(identity: string): number {
 
 type RemoteVideoCallback = (userId: number, stream: MediaStream, isScreenshare: boolean) => void;
 type RemoteVideoRemovedCallback = (userId: number, isScreenshare: boolean) => void;
+type LocalVideoCallback = (stream: MediaStream, isScreenshare: boolean) => void;
+type LocalVideoRemovedCallback = (isScreenshare: boolean) => void;
 type PendingVoiceJoin = {
   readonly token: string;
   readonly url: string;
@@ -106,6 +108,8 @@ export class LiveKitSession {
   private serverHost: string | null = null;
   private onRemoteVideoCallback: RemoteVideoCallback | null = null;
   private onRemoteVideoRemovedCallback: RemoteVideoRemovedCallback | null = null;
+  private onLocalVideoCallback: LocalVideoCallback | null = null;
+  private onLocalVideoRemovedCallback: LocalVideoRemovedCallback | null = null;
   private tokenRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   /** Latest token received from server (used for reconnection after token refresh). */
   private latestToken: string | null = null;
@@ -170,6 +174,7 @@ export class LiveKitSession {
     newRoom.on(RoomEvent.ActiveSpeakersChanged, this.handleActiveSpeakersChanged);
     newRoom.on(RoomEvent.AudioPlaybackStatusChanged, this.handleAudioPlaybackChanged);
     newRoom.on(RoomEvent.LocalTrackPublished, this.handleLocalTrackPublished);
+    newRoom.on(RoomEvent.LocalTrackUnpublished, this.handleLocalTrackUnpublished);
 
     // Room lifecycle event logging for diagnostics
     newRoom.on(RoomEvent.Reconnecting, () => {
@@ -207,8 +212,13 @@ export class LiveKitSession {
 
   // --- Room event handlers (arrow fns to preserve `this`) ---
 
-  /** Defense in depth: when LiveKit (re)publishes a mic track during
-   *  renegotiation, re-enforce the current mute state on the new track. */
+  /**
+   * Central handler for all local track publications.
+   * - Mic: re-enforces mute state after renegotiation.
+   * - Camera / ScreenShare: notifies UI via onLocalVideoCallback so the
+   *   preview appears exactly when the track is ready, not before publishTrack()
+   *   resolves (which would race and return null from getLocalCameraStream).
+   */
   private handleLocalTrackPublished = (publication: LocalTrackPublication): void => {
     if (publication.source === Track.Source.Microphone) {
       const { localMuted, localDeafened } = voiceStore.getState();
@@ -216,6 +226,45 @@ export class LiveKitSession {
         this.applyMicMuteState(true).catch((e) => log.warn("applyMicMuteState failed", e));
         log.debug("LocalTrackPublished: re-applied mute to mic track");
       }
+      return;
+    }
+
+    if (
+      publication.source === Track.Source.Camera ||
+      publication.source === Track.Source.ScreenShare
+    ) {
+      if (publication.track?.mediaStreamTrack && this.onLocalVideoCallback !== null) {
+        const stream = new MediaStream([publication.track.mediaStreamTrack]);
+        const isScreenshare = publication.source === Track.Source.ScreenShare;
+        this.onLocalVideoCallback(stream, isScreenshare);
+        log.debug("LocalTrackPublished: notified UI of local video stream", {
+          source: publication.source,
+        });
+      }
+    }
+  };
+
+  /**
+   * Notifies UI when a local camera or screenshare track is unpublished
+   * (e.g. user stopped sharing, or track ended natively via browser UI).
+   */
+  private handleLocalTrackUnpublished = (publication: LocalTrackPublication): void => {
+    if (
+      publication.source === Track.Source.Camera ||
+      publication.source === Track.Source.ScreenShare
+    ) {
+      const isScreenshare = publication.source === Track.Source.ScreenShare;
+      this.onLocalVideoRemovedCallback?.(isScreenshare);
+      // Keep store in sync if the track was ended by the browser (e.g. user
+      // clicked "Stop sharing" in the OS/browser notification).
+      if (isScreenshare) {
+        setLocalScreenshare(false);
+        this.ws?.send({ type: "voice_screenshare", payload: { enabled: false } });
+      } else {
+        setLocalCamera(false);
+        this.ws?.send({ type: "voice_camera", payload: { enabled: false } });
+      }
+      log.debug("LocalTrackUnpublished: notified UI, store updated", { source: publication.source });
     }
   };
 
@@ -568,6 +617,20 @@ export class LiveKitSession {
     this.onRemoteVideoRemovedCallback = null;
   }
 
+  /** Register a callback that fires when the local camera or screenshare track
+   *  becomes available. Fired from the LocalTrackPublished room event, which
+   *  guarantees the track is ready (publishTrack has resolved). */
+  setOnLocalVideo(cb: LocalVideoCallback): void { this.onLocalVideoCallback = cb; }
+
+  /** Register a callback that fires when a local camera or screenshare track
+   *  is unpublished (user disabled it, or browser ended it natively). */
+  setOnLocalVideoRemoved(cb: LocalVideoRemovedCallback): void { this.onLocalVideoRemovedCallback = cb; }
+
+  clearOnLocalVideo(): void {
+    this.onLocalVideoCallback = null;
+    this.onLocalVideoRemovedCallback = null;
+  }
+
   async handleVoiceToken(
     token: string, url: string, channelId: number, directUrl?: string,
   ): Promise<void> {
@@ -751,6 +814,8 @@ export class LiveKitSession {
     this.onErrorCallback = null;
     this.onRemoteVideoCallback = null;
     this.onRemoteVideoRemovedCallback = null;
+    this.onLocalVideoCallback = null;
+    this.onLocalVideoRemovedCallback = null;
     this.ws = null;
     this.serverHost = null;
     this.liveKitProxyPort = null;
@@ -816,6 +881,8 @@ export class LiveKitSession {
           maxFramerate: quality === "low" ? 15 : 30,
         },
       });
+      // UI is notified via handleLocalTrackPublished (LocalTrackPublished event)
+      // which fires after publishTrack resolves — no race condition.
       this.ws.send({ type: "voice_camera", payload: { enabled: true } });
       // Re-apply audio pipeline — publishing a new track can trigger WebRTC
       // renegotiation which resets the mic sender, bypassing our GainNode mute.
@@ -885,6 +952,7 @@ export class LiveKitSession {
           } : {}),
         });
       }
+      // UI is notified via handleLocalTrackPublished (LocalTrackPublished event).
       this.ws.send({ type: "voice_screenshare", payload: { enabled: true } });
       // Re-apply audio pipeline — same renegotiation risk as camera.
       this._audioPipeline.setupAudioPipeline();
@@ -1154,6 +1222,9 @@ export const clearOnError = session.clearOnError.bind(session);
 export const setOnRemoteVideo = session.setOnRemoteVideo.bind(session);
 export const setOnRemoteVideoRemoved = session.setOnRemoteVideoRemoved.bind(session);
 export const clearOnRemoteVideo = session.clearOnRemoteVideo.bind(session);
+export const setOnLocalVideo = session.setOnLocalVideo.bind(session);
+export const setOnLocalVideoRemoved = session.setOnLocalVideoRemoved.bind(session);
+export const clearOnLocalVideo = session.clearOnLocalVideo.bind(session);
 export const handleVoiceToken = session.handleVoiceToken.bind(session);
 export const leaveVoice = session.leaveVoice.bind(session);
 export const retryMicPermission = session.retryMicPermission.bind(session);
