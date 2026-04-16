@@ -47,10 +47,15 @@ export class AudioElements {
     return this.outputVolumeMultiplier;
   }
 
-  /** Compute the effective volume for a participant: per-user volume * master output. */
+  /** Compute the effective volume for a participant: per-user volume * master output.
+   * Clamped to [0, 1] because HTMLMediaElement.volume only accepts this range.
+   * Note: LiveKit's setVolume() supports 0-2.0 via GainNode, but the underlying
+   * HTMLMediaElement.volume must stay within [0, 1] to avoid IndexSizeError crashes.
+   */
   getEffectiveVolume(userId: number): number {
     const userVol = userId > 0 ? getSavedUserVolume(userId) : 100;
-    return (userVol / 100) * this.outputVolumeMultiplier;
+    const raw = (userVol / 100) * this.outputVolumeMultiplier;
+    return Math.max(0, Math.min(1, raw));
   }
 
   private getScreenshareOutputVolume(): number {
