@@ -93,8 +93,8 @@ export function setVoiceStates(states: readonly ReadyVoiceState[]): void {
       muted: vs.muted,
       deafened: vs.deafened,
       speaking: false,
-      camera: false,
-      screenshare: false,
+      camera: vs.camera ?? false,
+      screenshare: vs.screenshare ?? false,
     });
   }
 
@@ -139,6 +139,19 @@ export function updateVoiceState(payload: VoiceStatePayload): void {
     });
 
     nextChannels.set(payload.channel_id, nextUsers);
+
+    // Sync localMuted / localDeafened with authoritative server state for own user.
+    // This prevents drift between the optimistic local flag and what the server confirmed.
+    const currentUserId = authStore.getState().user?.id ?? 0;
+    if (currentUserId !== 0 && payload.user_id === currentUserId) {
+      return {
+        ...prev,
+        voiceUsers: nextChannels,
+        localMuted: payload.muted,
+        localDeafened: payload.deafened,
+      };
+    }
+
     return { ...prev, voiceUsers: nextChannels };
   });
 }
