@@ -109,6 +109,8 @@ export interface ReadyVoiceState {
   readonly user_id: number;
   readonly muted: boolean;
   readonly deafened: boolean;
+  readonly camera: boolean;
+  readonly screenshare: boolean;
 }
 
 /** Role object in the ready payload. */
